@@ -36,7 +36,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /status
-            Method: get
+            Method: post
   AlertSnsTopic:
     Type: 'AWS::SNS::Topic'
     Properties:
@@ -48,14 +48,14 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        - AttributeName: id
+        - AttributeName: plant_id
           AttributeType: S
-        - AttributeName: ts
+        - AttributeName: timestamp
           AttributeType: S
       KeySchema:
-        - AttributeName: id
+        - AttributeName: plant_id
           KeyType: HASH
-        - AttributeName: ts
+        - AttributeName: timestamp
           KeyType: RANGE
       BillingMode: PROVISIONED
       ProvisionedThroughput:
