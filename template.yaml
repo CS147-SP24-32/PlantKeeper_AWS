@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  PlantKeeper
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Parameters:
+  AlertEmail:
+    Type: String
+
+Resources:
+  StatusFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: status/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - arm64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SensorData
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AlertSnsTopic.TopicName
+
+      Environment:
+        Variables:
+          SENSOR_TABLE: !Ref SensorData
+          ALERT_ARN: !Ref AlertSnsTopic
+      Events:
+        Api:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /status
+            Method: get
+  AlertSnsTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      KmsMasterKeyId: alias/aws/sns
+      Subscription:
+        - Endpoint: !Ref AlertEmail
+          Protocol: email
+  SensorData:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: ts
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+        - AttributeName: ts
+          KeyType: RANGE
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  StatusFunctionApi:
+    Description: "endpoint URL for Prod stage for status function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/status/"
+  StatusFunction:
+    Description: "ARN for status function"
+    Value: !GetAtt StatusFunction.Arn
+  StatusFunctionIamRole:
+    Description: "Implicit IAM Role created for status function"
+    Value: !GetAtt StatusFunctionRole.Arn
+  AlertSnsTopicArn:
+    Description: "ARN of the SNS topic used for alerts"
+    Value: !Ref AlertSnsTopic
+  AlertEmailAddress:
+    Description: "Email address where alerts will be sent"
+    Value: !Ref AlertEmail
