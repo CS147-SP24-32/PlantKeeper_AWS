@@ -7,6 +7,11 @@ Description: >
 Globals:
   Function:
     Timeout: 3
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
 
 Parameters:
   AlertEmail:
@@ -16,8 +21,8 @@ Resources:
   StatusFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: status/
-      Handler: app.lambda_handler
+      CodeUri: ./src
+      Handler: status.app.lambda_handler
       Runtime: python3.12
       Architectures:
         - arm64
@@ -37,6 +42,27 @@ Resources:
           Properties:
             Path: /status
             Method: post
+  GetData:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ./src
+      Handler: getdata.app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - arm64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SensorData
+
+      Environment:
+        Variables:
+          SENSOR_TABLE: !Ref SensorData
+      Events:
+        Api:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /getData
+            Method: get
   AlertSnsTopic:
     Type: 'AWS::SNS::Topic'
     Properties:

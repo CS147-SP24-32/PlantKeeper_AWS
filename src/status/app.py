@@ -1,6 +1,6 @@
-import json
 import os
-from sensor_data import SensorData
+import json
+from common.sensor_data import SensorData
 import boto3
 import time
 
@@ -16,7 +16,7 @@ def lambda_handler(event, context):
 
     needs_watering = False
     SensorData().new(body, "0")
-    if moisture := body.get('moisture'):
+    if (moisture := body.get('moisture')) is not None:
         if moisture < 44:
             message = "Soil moisture level is low. Please water your plant."
             needs_watering = True

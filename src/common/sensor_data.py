@@ -1,6 +1,7 @@
 import datetime
 
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
 import os
 from uuid import uuid4
 
@@ -24,3 +25,9 @@ class SensorData:
                 **readings,
             }
         )
+
+    def get(self, plant_id: str, start_time: str, end_time: str):
+        print(f"{plant_id}, {start_time}, {end_time}\n\n")
+        resp = self.table.query(KeyConditionExpression=Key("plant_id").eq(plant_id) & Key('timestamp').between(start_time, end_time))
+        print(resp)
+        return resp.get('Items', {})
