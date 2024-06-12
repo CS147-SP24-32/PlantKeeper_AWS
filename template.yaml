@@ -29,13 +29,15 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref SensorData
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConfigData
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt AlertSnsTopic.TopicName
-
       Environment:
         Variables:
           SENSOR_TABLE: !Ref SensorData
           ALERT_ARN: !Ref AlertSnsTopic
+          CONFIG_TABLE: !Ref ConfigData
       Events:
         Api:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -53,7 +55,6 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref SensorData
-
       Environment:
         Variables:
           SENSOR_TABLE: !Ref SensorData
@@ -63,6 +64,26 @@ Resources:
           Properties:
             Path: /getData
             Method: get
+  Config:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ./src
+      Handler: config.app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - arm64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConfigData
+      Environment:
+        Variables:
+          CONFIG_TABLE: !Ref ConfigData
+      Events:
+        Api:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /config
+            Method: post
   AlertSnsTopic:
     Type: 'AWS::SNS::Topic'
     Properties:
@@ -83,6 +104,19 @@ Resources:
           KeyType: HASH
         - AttributeName: timestamp
           KeyType: RANGE
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+  ConfigData:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: plant_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: plant_id
+          KeyType: HASH
       BillingMode: PROVISIONED
       ProvisionedThroughput:
         ReadCapacityUnits: 1
